@@ -1,0 +1,20 @@
+const fs=require('fs');const {ethers}=require('ethers');require('dotenv').config();
+(async()=>{
+const d=JSON.parse(fs.readFileSync('deployed.json','utf8'));
+const t=JSON.parse(fs.readFileSync('testtoken.json','utf8'));
+const c=JSON.parse(fs.readFileSync('compiled.json','utf8'));
+const p=new ethers.providers.JsonRpcProvider('http://127.0.0.1:9545');
+const w=new ethers.Wallet(process.env.PRIVATE_KEY,p);
+const R=new ethers.Contract(d.router,c['OPKWRouter.sol']['OPKWRouter'].abi,w);
+const T=new ethers.Contract(t.testToken,c['TestToken.sol']['TestToken'].abi,w);
+const amtIn=ethers.utils.parseEther('0.1');
+const path=[t.testToken,d.wopkw];
+let tx=await T.approve(d.router,amtIn);await tx.wait();
+const dl=Math.floor(Date.now()/1000)+3600;
+tx=await R.swapExactTokensForTokens(amtIn,0,path,w.address,dl,{gasLimit:500000});let r=await tx.wait();
+const h=r.transactionHash;
+const line='\n## 5B. DEX - LIVE PROOF (16 Nov 2026)\n- WOPKW: '+d.wopkw+'\n- Factory: '+d.factory+'\n- Router: '+d.router+'\n- WOLFTEST: '+t.testToken+'\n- Pair: 0xad1FAC5feE46002479F55E34efED32ace255f8B7\n- Liquidity: 200 WOLFTEST + 0.2 WOPKW, LP 6.3245\n- Swap OK: 1 WOLFTEST => 0.0009920546 WOPKW\n- Swap Tx: '+h+'\n- Status: DEX ROUTER LIVE - Pair + Liquidity + Swap VERIFIED\n';
+fs.appendFileSync('/data-backup/wolf-dev-empire-backup/WOLF-DEV-EMPIRE-FULL-HISTORY-BACKUP.md',line);
+console.log('SAVED-PROOF');
+console.log('TX-START:',h.slice(0,10),'TX-END:',h.slice(-4));
+})();

@@ -1,0 +1,22 @@
+const fs=require('fs');const {ethers}=require('ethers');require('dotenv').config();
+(async()=>{
+const d=JSON.parse(fs.readFileSync('deployed.json','utf8'));
+const t=JSON.parse(fs.readFileSync('testtoken.json','utf8'));
+const c=JSON.parse(fs.readFileSync('compiled.json','utf8'));
+const p=new ethers.providers.JsonRpcProvider('http://127.0.0.1:9545');
+const w=new ethers.Wallet(process.env.PRIVATE_KEY,p);
+const R=new ethers.Contract(d.router,c['OPKWRouter.sol']['OPKWRouter'].abi,w);
+const T=new ethers.Contract(t.testToken,c['TestToken.sol']['TestToken'].abi,w);
+const W=new ethers.Contract(d.wopkw,c['WOPKW.sol']['WOPKW'].abi,w);
+const amtIn=ethers.utils.parseEther('1');
+const path=[t.testToken,d.wopkw];
+const out=await R.getAmountsOut(amtIn,path);
+console.log('1 WOLFTEST =>',ethers.utils.formatEther(out[1]),'WOPKW');
+console.log('BEFORE WOPKW:',ethers.utils.formatEther(await W.balanceOf(w.address)));
+let tx=await T.approve(d.router,amtIn);await tx.wait();
+const dl=Math.floor(Date.now()/1000)+3600;
+tx=await R.swapExactTokensForTokens(amtIn,0,path,w.address,dl,{gasLimit:500000});let r=await tx.wait();
+console.log('SWAP-OK',r.transactionHash);
+console.log('AFTER WOPKW:',ethers.utils.formatEther(await W.balanceOf(w.address)));
+console.log('AFTER WOLFTEST:',ethers.utils.formatEther(await T.balanceOf(w.address)));
+})();
